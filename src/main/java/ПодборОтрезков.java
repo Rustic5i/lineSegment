@@ -12,20 +12,20 @@ public class ПодборОтрезков {
     /**
      * Требуемая длина отрезка
      */
-    private final Integer ТРЕБУЕМАЯ_ДЛИНА;
+    private final Float ТРЕБУЕМАЯ_ДЛИНА;
 
     /**
      * Список размеров отрезков
      */
-    private final List<Integer> МАССИВ_ОТРЕЗВКОВ;
+    private final List<Float> МАССИВ_ОТРЕЗВКОВ;
     private final String форматВыводаРезультата = "%s Размер %s";
 
     /**
      * Список полученных отрезков
      */
-    private List<List<Integer>> результатСписокМассивов = new ArrayList<>();
+    private List<List<Float>> результатСписокМассивов = new ArrayList<>();
 
-    public ПодборОтрезков(Integer ТРЕБУЕМАЯ_ДЛИНА, List<Integer> МАССИВ_ОТРЕЗВКОВ) {
+    public ПодборОтрезков(Float ТРЕБУЕМАЯ_ДЛИНА, List<Float> МАССИВ_ОТРЕЗВКОВ) {
         this.ТРЕБУЕМАЯ_ДЛИНА = ТРЕБУЕМАЯ_ДЛИНА;
         this.МАССИВ_ОТРЕЗВКОВ = МАССИВ_ОТРЕЗВКОВ;
     }
@@ -52,16 +52,16 @@ public class ПодборОтрезков {
     }
 
     private void выполнитьРасчет() {
-        List<Integer> array = МАССИВ_ОТРЕЗВКОВ.stream().filter(segment -> segment <= ТРЕБУЕМАЯ_ДЛИНА).collect(Collectors.toList());
+        List<Float> array = МАССИВ_ОТРЕЗВКОВ.stream().filter(segment -> segment <= ТРЕБУЕМАЯ_ДЛИНА).collect(Collectors.toList());
         for (int i = 0; i < array.size(); i++) {
-            Integer кКомуПлюсуем = array.get(i);
-            List<Integer> массивЧтоПлюсуем = array.stream().dropWhile(v -> v == кКомуПлюсуем).collect(Collectors.toList());
+            Float кКомуПлюсуем = array.get(i);
+            List<Float> массивЧтоПлюсуем = array.stream().dropWhile(v -> v == кКомуПлюсуем).collect(Collectors.toList());
             расчетСуммыОтрезков(кКомуПлюсуем, массивЧтоПлюсуем);
         }
     }
 
-    private void расчетСуммыОтрезков(final Integer кКомуПлюсуем, final List<Integer> массивЧтоПлюсуем) {
-        List<Integer> массивРезультатов = new ArrayList<>();
+    private void расчетСуммыОтрезков(final Float кКомуПлюсуем, final List<Float> массивЧтоПлюсуем) {
+        List<Float> массивРезультатов = new ArrayList<>();
         массивРезультатов.add(кКомуПлюсуем);
         массивЧтоПлюсуем.stream().forEach(чтоПлюсуем -> {
             массивРезультатов.add(чтоПлюсуем);
@@ -71,12 +71,12 @@ public class ПодборОтрезков {
         еслиМеньше(массивРезультатов);
     }
 
-    private void еслиМеньше(List<Integer> массивРезультатов) {
+    private void еслиМеньше(List<Float> массивРезультатов) {
         LOGGER.warn("Не добрал " + суммаОтрезковМассива(массивРезультатов));
         результатСписокМассивов.add(new ArrayList<>(массивРезультатов));
     }
 
-    private void еслиБольше(List<Integer> массивРезультатов, Integer чтоПлюсуем) {
+    private void еслиБольше(List<Float> массивРезультатов, Float чтоПлюсуем) {
         if (суммаОтрезковМассива(массивРезультатов) > ТРЕБУЕМАЯ_ДЛИНА) {
             LOGGER.warn("Превысили размер " + суммаОтрезковМассива(массивРезультатов));
             результатСписокМассивов.add(new ArrayList<>(массивРезультатов));
@@ -84,7 +84,7 @@ public class ПодборОтрезков {
         }
     }
 
-    private void еслиРавен(List<Integer> массивРезультатов, Integer чтоПлюсуем) {
+    private void еслиРавен(List<Float> массивРезультатов, Float чтоПлюсуем) {
         if (суммаОтрезковМассива(массивРезультатов) == ТРЕБУЕМАЯ_ДЛИНА) {
             LOGGER.warn("Подобрали!!" + суммаОтрезковМассива(массивРезультатов));
             результатСписокМассивов.add(new ArrayList<>(массивРезультатов));
@@ -92,7 +92,7 @@ public class ПодборОтрезков {
         }
     }
 
-    private Integer суммаОтрезковМассива(List<Integer> массивРезультатов) {
-        return массивРезультатов.stream().reduce((n, v) -> n + v).orElse(0);
+    private Float суммаОтрезковМассива(List<Float> массивРезультатов) {
+        return массивРезультатов.stream().reduce((n, v) -> n + v).orElse(0f);
     }
 }
