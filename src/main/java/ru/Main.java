@@ -1,3 +1,5 @@
+package ru;
+
 import java.util.Arrays;
 
 public class Main {
