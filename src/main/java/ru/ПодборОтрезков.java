@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -21,7 +22,7 @@ public class ПодборОтрезков {
     /**
      * Список размеров отрезков
      */
-    private final List<BigDecimal> МАССИВ_ОТРЕЗВКОВ;
+    private final List<BigDecimal> МАССИВ_ОТРЕЗКОВ;
     private final String форматВыводаРезультата = "%s Размер %s";
 
     /**
@@ -32,7 +33,7 @@ public class ПодборОтрезков {
 
     public ПодборОтрезков(String ТРЕБУЕМАЯ_ДЛИНА, List<String> МАССИВ_ОТРЕЗВКОВ) {
         this.ТРЕБУЕМАЯ_ДЛИНА = new BigDecimal(ТРЕБУЕМАЯ_ДЛИНА.replace(",", "."));
-        this.МАССИВ_ОТРЕЗВКОВ = Optional.ofNullable(МАССИВ_ОТРЕЗВКОВ)
+        this.МАССИВ_ОТРЕЗКОВ = Optional.ofNullable(МАССИВ_ОТРЕЗВКОВ)
                 .orElse(new ArrayList<>()).stream()
                 .map(отрезок -> new BigDecimal(отрезок.replace(",", ".")))
                 .collect(Collectors.toList());
@@ -45,31 +46,61 @@ public class ПодборОтрезков {
     }
 
     private void показатьРезультат() {
-        LOGGER.info("************************ Список всех возможных отрезков для размера "+ТРЕБУЕМАЯ_ДЛИНА+" *****************************************************");
+        LOGGER.info("************************ Список всех возможных отрезков для размера " + ТРЕБУЕМАЯ_ДЛИНА + " *****************************************************");
         результатСписокМассивов.stream()
                 .peek(value -> value.sort(Collections.reverseOrder()))
                 .sorted((value1, value2) -> суммаОтрезковМассива(value1).compareTo(суммаОтрезковМассива(value2)))
                 .distinct()
                 .forEach(value -> {
-                    BigDecimal суммаОтрезковМассива = суммаОтрезковМассива(value);
-                    LOGGER.info(
-                            форматВыводаРезультата.formatted(value,
-                                    (суммаОтрезковМассива.compareTo(ТРЕБУЕМАЯ_ДЛИНА) != 0) ? суммаОтрезковМассива : суммаОтрезковМассива + " <=============")
-                    );
+                    показатьРезультат(value);
                 });
     }
 
+    private void показатьРезультат(List<BigDecimal> списокОтрезков) {
+        BigDecimal суммаОтрезковМассива = суммаОтрезковМассива(списокОтрезков);
+        if (суммаОтрезковМассива.compareTo(ТРЕБУЕМАЯ_ДЛИНА) == 0) {
+            LOGGER.info(форматВыводаРезультата.formatted(списокОтрезков, суммаОтрезковМассива + " <============="));
+            return;
+        }
+        if (списокОтрезков.size() == 1 && суммаОтрезковМассива.compareTo(ТРЕБУЕМАЯ_ДЛИНА) > 0) {
+            LOGGER.info(форматВыводаРезультата.formatted(списокОтрезков, суммаОтрезковМассива + " <============= минимально большой отрезок (можно отрезать)"));
+            return;
+        }
+        LOGGER.info(форматВыводаРезультата.formatted(списокОтрезков, суммаОтрезковМассива));
+    }
+
     private void отсортироватьРазмерОтрезков() {
-        МАССИВ_ОТРЕЗВКОВ.sort(Collections.reverseOrder());
+        МАССИВ_ОТРЕЗКОВ.sort(Collections.reverseOrder());
     }
 
     private void выполнитьРасчет() {
-        List<BigDecimal> array = МАССИВ_ОТРЕЗВКОВ.stream().filter(segment -> segment.compareTo(ТРЕБУЕМАЯ_ДЛИНА) <= 0).collect(Collectors.toList());
+        List<BigDecimal> array = МАССИВ_ОТРЕЗКОВ.stream().filter(segment -> segment.compareTo(ТРЕБУЕМАЯ_ДЛИНА) <= 0).collect(Collectors.toList());
+        if (array.contains(ТРЕБУЕМАЯ_ДЛИНА)){
+            результатСписокМассивов.add(Arrays.asList(ТРЕБУЕМАЯ_ДЛИНА));
+            array.remove(ТРЕБУЕМАЯ_ДЛИНА);
+        }
         for (int i = 0; i < array.size(); i++) {
             BigDecimal кКомуПлюсуем = array.get(i);
-            List<BigDecimal> массивЧтоПлюсуем = array.stream().dropWhile(v -> v == кКомуПлюсуем).collect(Collectors.toList());
+            List<BigDecimal> массивЧтоПлюсуем = new ArrayList<>(array);
+            массивЧтоПлюсуем.remove(кКомуПлюсуем);
             расчетСуммыОтрезков(кКомуПлюсуем, массивЧтоПлюсуем);
         }
+        подобратьМинимальноБольшойОтрезок(МАССИВ_ОТРЕЗКОВ);
+    }
+
+    /**
+     * Если есть отрезки больше требуемой длины.
+     * Находим минимально большой отрезок и добавляем в список результатов.
+     * Так как из данного отрезка возможно будет отрезать нужный размер.
+     *
+     * @param массив_отрезков
+     */
+    private void подобратьМинимальноБольшойОтрезок(List<BigDecimal> массив_отрезков) {
+        массив_отрезков.stream()
+                .sorted()
+                .filter(отрезок -> отрезок.compareTo(ТРЕБУЕМАЯ_ДЛИНА) > 0)
+                .findFirst()
+                .ifPresent(минимальноБольшойОтрезок -> результатСписокМассивов.add(Arrays.asList(минимальноБольшойОтрезок)));
     }
 
     private void расчетСуммыОтрезков(final BigDecimal кКомуПлюсуем, final List<BigDecimal> массивЧтоПлюсуем) {
@@ -84,8 +115,10 @@ public class ПодборОтрезков {
     }
 
     private void еслиМеньше(List<BigDecimal> массивРезультатов) {
-        LOGGER.warn("Не добрал " + суммаОтрезковМассива(массивРезультатов));
-        результатСписокМассивов.add(new ArrayList<>(массивРезультатов));
+        if (суммаОтрезковМассива(массивРезультатов).compareTo(ТРЕБУЕМАЯ_ДЛИНА) == -1) {
+            LOGGER.warn("Не добрал " + суммаОтрезковМассива(массивРезультатов));
+            результатСписокМассивов.add(new ArrayList<>(массивРезультатов));
+        }
     }
 
     private void еслиБольше(List<BigDecimal> массивРезультатов, BigDecimal чтоПлюсуем) {
